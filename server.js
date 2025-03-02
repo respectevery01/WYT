@@ -47,8 +47,28 @@ app.get('/api/articles', (req, res) => {
     
     const articles = files.map(file => {
       const filePath = path.join(articlesDir, file);
-      const stats = fs.statSync(filePath);
       const content = fs.readFileSync(filePath, 'utf-8');
+      
+      // First try to extract date from filename (YYYY-MM-DD format)
+      let date = null;
+      const filenameMatch = file.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (filenameMatch) {
+        date = filenameMatch[1];
+      }
+      
+      // If no date in filename, try to find it in content (_Created on YYYY-MM-DD_)
+      if (!date) {
+        const contentDateMatch = content.match(/_Created on (\d{4}-\d{2}-\d{2})_/);
+        if (contentDateMatch) {
+          date = contentDateMatch[1];
+        }
+      }
+      
+      // Fallback to file stats only if no date found in filename or content
+      if (!date) {
+        const stats = fs.statSync(filePath);
+        date = stats.birthtime.toISOString().split('T')[0];
+      }
       
       // Extract title from markdown (first # heading)
       const titleMatch = content.match(/^# (.*)$/m);
@@ -57,7 +77,7 @@ app.get('/api/articles', (req, res) => {
       return {
         id: file,
         title,
-        date: stats.birthtime.toISOString().split('T')[0],
+        date,
         content
       };
     });
@@ -79,7 +99,27 @@ app.get('/api/articles/:id', (req, res) => {
   
   try {
     const content = fs.readFileSync(articlePath, 'utf-8');
-    const stats = fs.statSync(articlePath);
+    
+    // First try to extract date from filename (YYYY-MM-DD format)
+    let date = null;
+    const filenameMatch = articleId.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (filenameMatch) {
+      date = filenameMatch[1];
+    }
+    
+    // If no date in filename, try to find it in content (_Created on YYYY-MM-DD_)
+    if (!date) {
+      const contentDateMatch = content.match(/_Created on (\d{4}-\d{2}-\d{2})_/);
+      if (contentDateMatch) {
+        date = contentDateMatch[1];
+      }
+    }
+    
+    // Fallback to file stats only if no date found in filename or content
+    if (!date) {
+      const stats = fs.statSync(articlePath);
+      date = stats.birthtime.toISOString().split('T')[0];
+    }
     
     // Extract title from markdown
     const titleMatch = content.match(/^# (.*)$/m);
@@ -88,7 +128,7 @@ app.get('/api/articles/:id', (req, res) => {
     res.json({
       id: articleId,
       title,
-      date: stats.birthtime.toISOString().split('T')[0],
+      date,
       content
     });
   } catch (error) {

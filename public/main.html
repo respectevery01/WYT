@@ -338,120 +338,152 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
         mobileKeyboardPrompt.style.display = 'none';
       });
       
-      // Listen for input events on the hidden input
-      mobileInput.addEventListener('input', function(e) {
-        // Get value from hidden input
-        const inputValue = mobileInput.value;
-        
-        // Append the last character to the command line
-        if (inputValue.length > 0) {
-          const lastChar = inputValue.charAt(inputValue.length - 1);
-          currentCommand += lastChar;
-          commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+      // Listen for input events on the hidden input - ONLY FOR MOBILE
+      if (isMobile) {
+        mobileInput.addEventListener('input', function(e) {
+          // Get value from hidden input
+          const inputValue = mobileInput.value;
           
-          // Clear the hidden input for next character
-          mobileInput.value = '';
-        }
-        
-        // Scroll to bottom
-        window.scrollTo(0, document.body.scrollHeight);
-      });
+          // Append the last character to the command line
+          if (inputValue.length > 0) {
+            const lastChar = inputValue.charAt(inputValue.length - 1);
+            currentCommand += lastChar;
+            commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+            
+            // Clear the hidden input for next character
+            mobileInput.value = '';
+          }
+          
+          // Scroll to bottom
+          window.scrollTo(0, document.body.scrollHeight);
+        });
 
-      // Handle Enter and Backspace keys for mobile input
-      mobileInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          // Process command
-          const cmd = currentCommand.trim();
-          if (cmd) {
-            // Add command to output area
-            const commandElement = document.createElement('div');
-            commandElement.innerHTML = `<span class="prompt">user@terminal:~$ </span><span class="command">${cmd.replace(/ /g, '&nbsp;')}</span>`;
-            terminalOutput.appendChild(commandElement);
-            
-            // Add command to history
-            commandHistory.push(cmd);
-            historyIndex = -1;
-            
+        // Handle Enter and Backspace keys for mobile input
+        mobileInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
             // Process command
-            processCommand(cmd);
-          }
-          currentCommand = '';
-          commandLine.innerHTML = '';
-          
-          // Scroll to bottom
-          window.scrollTo(0, document.body.scrollHeight);
-        } else if (e.key === 'Backspace') {
-          e.preventDefault();
-          currentCommand = currentCommand.slice(0, -1);
-          commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
-        }
-      });
-
-      // Restore original keyboard event listener (for desktop)
-      document.addEventListener('keydown', function(e) {
-        // Prevent default behavior for specific keys
-        if (e.key === ' ' || e.key === 'Tab' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-          e.preventDefault();
-        }
-        
-        // Handle keyboard input
-        if (e.key === 'Enter') {
-          // Process command
-          const cmd = currentCommand.trim();
-          if (cmd) {
-            // Add command to output area
-            const commandElement = document.createElement('div');
-            commandElement.innerHTML = `<span class="prompt">user@terminal:~$ </span><span class="command">${cmd.replace(/ /g, '&nbsp;')}</span>`;
-            terminalOutput.appendChild(commandElement);
-            
-            // Add command to history
-            commandHistory.push(cmd);
-            historyIndex = -1;
-            
-            // Process the command
-            processCommand(cmd);
-          }
-          currentCommand = '';
-          commandLine.innerHTML = '';
-          
-          // Scroll to bottom
-          window.scrollTo(0, document.body.scrollHeight);
-        } else if (e.key === 'ArrowUp') {
-          // Browse command history upward
-          if (commandHistory.length > 0) {
-            if (historyIndex < commandHistory.length - 1) {
-              historyIndex++;
+            const cmd = currentCommand.trim();
+            if (cmd) {
+              // Add command to output area
+              const commandElement = document.createElement('div');
+              commandElement.innerHTML = `<span class="prompt">user@terminal:~$ </span><span class="command">${cmd.replace(/ /g, '&nbsp;')}</span>`;
+              terminalOutput.appendChild(commandElement);
+              
+              // Add command to history
+              commandHistory.push(cmd);
+              historyIndex = -1;
+              
+              // Process command
+              processCommand(cmd);
             }
-            currentCommand = commandHistory[commandHistory.length - 1 - historyIndex];
-            commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
-          }
-        } else if (e.key === 'ArrowDown') {
-          // Browse command history downward
-          if (historyIndex > 0) {
-            historyIndex--;
-            currentCommand = commandHistory[commandHistory.length - 1 - historyIndex];
-            commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
-          } else if (historyIndex === 0) {
-            // Return to empty command
-            historyIndex = -1;
             currentCommand = '';
             commandLine.innerHTML = '';
+            
+            // Scroll to bottom
+            window.scrollTo(0, document.body.scrollHeight);
+          } else if (e.key === 'Backspace') {
+            e.preventDefault();
+            currentCommand = currentCommand.slice(0, -1);
+            commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
           }
-        } else if (e.key === 'Backspace') {
-          e.preventDefault();
-          currentCommand = currentCommand.slice(0, -1);
-          commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
-        } else if (e.key === ' ') {
-          e.preventDefault();
-          currentCommand += ' ';
-          commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
-          console.log('Space key pressed, current command:', currentCommand);
-        } else if (e.key.length === 1) {
-          currentCommand += e.key;
-          commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
-        }
-      });
+        });
+      }
+
+      // Restore original keyboard event listener (for desktop)
+      if (!isMobile) {
+        document.addEventListener('keydown', function(e) {
+          // Prevent default behavior for specific keys
+          if (e.key === ' ' || e.key === 'Tab' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+          }
+          
+          // Handle keyboard input
+          if (e.key === 'Enter') {
+            // Process command
+            const cmd = currentCommand.trim();
+            if (cmd) {
+              // Add command to output area
+              const commandElement = document.createElement('div');
+              commandElement.innerHTML = `<span class="prompt">user@terminal:~$ </span><span class="command">${cmd.replace(/ /g, '&nbsp;')}</span>`;
+              terminalOutput.appendChild(commandElement);
+              
+              // Add command to history
+              commandHistory.push(cmd);
+              historyIndex = -1;
+              
+              // Process the command
+              processCommand(cmd);
+            }
+            currentCommand = '';
+            commandLine.innerHTML = '';
+            
+            // Scroll to bottom
+            window.scrollTo(0, document.body.scrollHeight);
+          } else if (e.key === 'ArrowUp') {
+            // Browse command history upward
+            if (commandHistory.length > 0) {
+              if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+              }
+              currentCommand = commandHistory[commandHistory.length - 1 - historyIndex];
+              commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+            }
+          } else if (e.key === 'ArrowDown') {
+            // Browse command history downward
+            if (historyIndex > 0) {
+              historyIndex--;
+              currentCommand = commandHistory[commandHistory.length - 1 - historyIndex];
+              commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+            } else if (historyIndex === 0) {
+              // Return to empty command
+              historyIndex = -1;
+              currentCommand = '';
+              commandLine.innerHTML = '';
+            }
+          } else if (e.key === 'Backspace') {
+            e.preventDefault();
+            currentCommand = currentCommand.slice(0, -1);
+            commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+          } else if (e.key === ' ') {
+            e.preventDefault();
+            currentCommand += ' ';
+            commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+            console.log('Space key pressed, current command:', currentCommand);
+          } else if (e.key.length === 1) {
+            currentCommand += e.key;
+            commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+          }
+        });
+      } else {
+        // For mobile, we still need arrow keys functionality for command history
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            // Browse command history upward
+            if (commandHistory.length > 0) {
+              if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+              }
+              currentCommand = commandHistory[commandHistory.length - 1 - historyIndex];
+              commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+            }
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            // Browse command history downward
+            if (historyIndex > 0) {
+              historyIndex--;
+              currentCommand = commandHistory[commandHistory.length - 1 - historyIndex];
+              commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+            } else if (historyIndex === 0) {
+              // Return to empty command
+              historyIndex = -1;
+              currentCommand = '';
+              commandLine.innerHTML = '';
+            }
+          }
+        });
+      }
 
       // Add right-click context menu for paste functionality
       document.getElementById('terminal').addEventListener('contextmenu', function(e) {
