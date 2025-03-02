@@ -197,6 +197,21 @@
         padding: 8px 0;
         bottom: 40px;
       }
+      
+      #mobile-keyboard-prompt {
+        display: block;
+        text-align: center;
+        margin-top: 10px;
+        color: #fff;
+        padding: 8px;
+        border: 1px dashed #333;
+        border-radius: 4px;
+        background-color: rgba(255,255,255,0.1);
+      }
+    }
+    
+    #mobile-keyboard-prompt {
+      display: none;
     }
   </style>
 </head>
@@ -217,6 +232,9 @@
       <span class="prompt">user@terminal:~$ </span>
       <span id="current-command"></span><span class="cursor"></span>
     </div>
+    
+    <!-- Mobile keyboard prompt -->
+    <div id="mobile-keyboard-prompt">Tap here to activate keyboard</div>
   </div>
 
   <!-- Footer -->
@@ -226,7 +244,7 @@
     </div>
   </div>
 
-  <!-- 为移动设备添加隐藏的输入框 -->
+  <!-- Hidden input for mobile devices -->
   <input type="text" id="mobile-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
 
   <script>
@@ -279,6 +297,7 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
       const terminalOutput = document.getElementById('terminal-output');
       const commandLine = document.getElementById('current-command');
       const mobileInput = document.getElementById('mobile-input');
+      const mobileKeyboardPrompt = document.getElementById('mobile-keyboard-prompt');
       let currentCommand = '';
       
       // Add command history functionality
@@ -296,10 +315,27 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
 
       // Populate initial footer links
       footerLinks.innerHTML = footerLinksHTML;
+      
+      // Detect if device is mobile
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        mobileKeyboardPrompt.style.display = 'block';
+      }
 
       // Click on any part of the terminal to focus the hidden input and bring up the keyboard
       document.getElementById('terminal').addEventListener('click', function() {
         mobileInput.focus();
+        if (isMobile) {
+          mobileKeyboardPrompt.style.display = 'none';
+        }
+      });
+      
+      // Special handler for the mobile keyboard prompt
+      mobileKeyboardPrompt.addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent double triggering with terminal click
+        mobileInput.focus();
+        mobileKeyboardPrompt.style.display = 'none';
       });
       
       // Listen for input events on the hidden input
@@ -352,7 +388,7 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
         }
       });
 
-      // 恢复原来的键盘事件监听器（针对桌面端）
+      // Restore original keyboard event listener (for desktop)
       document.addEventListener('keydown', function(e) {
         // Prevent default behavior for specific keys
         if (e.key === ' ' || e.key === 'Tab' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -476,6 +512,13 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
         
         // Ensure scroll to bottom
         window.scrollTo(0, document.body.scrollHeight);
+        
+        // Focus the mobile input to help mobile users
+        if (isMobile) {
+          setTimeout(() => {
+            mobileInput.focus();
+          }, 1000);
+        }
       });
 
       function processCommand(cmd) {
