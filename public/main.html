@@ -159,6 +159,17 @@
       min-width: 1px;
       min-height: 14px;
     }
+    
+    /* Add a hidden input for mobile keyboard activation */
+    #mobile-input {
+      position: fixed;
+      opacity: 0;
+      height: 0;
+      width: 0;
+      left: 0;
+      bottom: 0;
+      z-index: -1;
+    }
 
     #terminal-output {
       margin-bottom: 20px;
@@ -169,6 +180,23 @@
       margin-bottom: 15px;
       padding-bottom: 10px;
       border-bottom: 1px dashed #333;
+    }
+    
+    /* Mobile device adaptation styles */
+    @media (max-width: 768px) {
+      body {
+        font-size: 16px;
+        padding: 15px;
+      }
+      
+      .footer {
+        padding: 8px 15px;
+      }
+      
+      #command-line {
+        padding: 8px 0;
+        bottom: 40px;
+      }
     }
   </style>
 </head>
@@ -197,6 +225,9 @@
       <!-- Will be filled by JavaScript -->
     </div>
   </div>
+
+  <!-- 为移动设备添加隐藏的输入框 -->
+  <input type="text" id="mobile-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -247,6 +278,7 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
       // Get DOM elements
       const terminalOutput = document.getElementById('terminal-output');
       const commandLine = document.getElementById('current-command');
+      const mobileInput = document.getElementById('mobile-input');
       let currentCommand = '';
       
       // Add command history functionality
@@ -265,26 +297,62 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
       // Populate initial footer links
       footerLinks.innerHTML = footerLinksHTML;
 
-      // Display help content when page loads
-      window.addEventListener('load', () => {
-        // Add help content as output of first command
-        const outputElement = document.createElement('div');
-        outputElement.className = 'output';
-        outputElement.innerHTML = formatTerminalOutput(helpText);
-        terminalOutput.appendChild(outputElement);
+      // Click on any part of the terminal to focus the hidden input and bring up the keyboard
+      document.getElementById('terminal').addEventListener('click', function() {
+        mobileInput.focus();
+      });
+      
+      // Listen for input events on the hidden input
+      mobileInput.addEventListener('input', function(e) {
+        // Get value from hidden input
+        const inputValue = mobileInput.value;
         
-        // Add visual cue to let user know they can start typing
-        const cursor = document.querySelector('.cursor');
-        if (cursor) {
-          cursor.style.opacity = 1;
+        // Append the last character to the command line
+        if (inputValue.length > 0) {
+          const lastChar = inputValue.charAt(inputValue.length - 1);
+          currentCommand += lastChar;
+          commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+          
+          // Clear the hidden input for next character
+          mobileInput.value = '';
         }
-        console.log('Page loaded, terminal ready for input');
         
-        // Ensure scroll to bottom
+        // Scroll to bottom
         window.scrollTo(0, document.body.scrollHeight);
       });
 
-      // Add keyboard event listener
+      // Handle Enter and Backspace keys for mobile input
+      mobileInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          // Process command
+          const cmd = currentCommand.trim();
+          if (cmd) {
+            // Add command to output area
+            const commandElement = document.createElement('div');
+            commandElement.innerHTML = `<span class="prompt">user@terminal:~$ </span><span class="command">${cmd.replace(/ /g, '&nbsp;')}</span>`;
+            terminalOutput.appendChild(commandElement);
+            
+            // Add command to history
+            commandHistory.push(cmd);
+            historyIndex = -1;
+            
+            // Process command
+            processCommand(cmd);
+          }
+          currentCommand = '';
+          commandLine.innerHTML = '';
+          
+          // Scroll to bottom
+          window.scrollTo(0, document.body.scrollHeight);
+        } else if (e.key === 'Backspace') {
+          e.preventDefault();
+          currentCommand = currentCommand.slice(0, -1);
+          commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+        }
+      });
+
+      // 恢复原来的键盘事件监听器（针对桌面端）
       document.addEventListener('keydown', function(e) {
         // Prevent default behavior for specific keys
         if (e.key === ' ' || e.key === 'Tab' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -389,6 +457,25 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
               });
           }
         }
+      });
+
+      // Display help content when page loads
+      window.addEventListener('load', () => {
+        // Add help content as output of first command
+        const outputElement = document.createElement('div');
+        outputElement.className = 'output';
+        outputElement.innerHTML = formatTerminalOutput(helpText);
+        terminalOutput.appendChild(outputElement);
+        
+        // Add visual cue to let user know they can start typing
+        const cursor = document.querySelector('.cursor');
+        if (cursor) {
+          cursor.style.opacity = 1;
+        }
+        console.log('Page loaded, terminal ready for input');
+        
+        // Ensure scroll to bottom
+        window.scrollTo(0, document.body.scrollHeight);
       });
 
       function processCommand(cmd) {
