@@ -1,7 +1,7 @@
 {
-  "name": "terminal-homepage",
+  "name": "WYT",
   "version": "1.0.0",
-  "description": "终端风格的个人主页",
+  "description": "Terminal style personal homepage",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

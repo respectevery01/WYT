@@ -233,6 +233,10 @@
         // Hide continue prompt
         continuePrompt.classList.remove('visible');
         
+        // Notify server that this user has seen the intro
+        fetch('/seen-intro')
+          .catch(err => console.error('Could not record intro view:', err));
+        
         // Add final message
         terminalOutput.innerHTML += '<br><span class="output">Launching terminal interface...</span>';
         
