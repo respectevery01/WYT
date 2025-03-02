@@ -121,13 +121,8 @@
         { 
           prompt: "user@terminal:~$ ", 
           command: "So what should you do",
-          output: "I should, well,well,well..."
-        },
-        { 
-          prompt: "user@terminal:~$ ", 
-          command: "",
-          output: "error...\nerror...\nMake sure your network is successfully connected",
-          isError: true
+          output: "I should, well,well,well...",
+          errorOutput: "error...\nerror...\nMake sure your network is successfully connected"
         },
         { 
           prompt: "user@terminal:~$ ", 
@@ -209,11 +204,14 @@
         } else if (currentPart === 'output') {
           // Show the output
           if (currentCommand.output) {
-            if (currentCommand.isError) {
-              terminalOutput.innerHTML += '<span class="error">' + currentCommand.output + '</span><br>';
-            } else {
-              terminalOutput.innerHTML += '<span class="output">' + currentCommand.output + '</span><br>';
+            terminalOutput.innerHTML += '<span class="output">' + currentCommand.output + '</span>';
+            
+            // If there's an error output, add it after normal output
+            if (currentCommand.errorOutput) {
+              terminalOutput.innerHTML += '<br><span class="error">' + currentCommand.errorOutput + '</span>';
             }
+            
+            terminalOutput.innerHTML += '<br>';
           }
           
           currentCharIndex = 0;
