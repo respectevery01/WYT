@@ -289,15 +289,23 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
 
       const helpText = `        Available commands:
         - cat bio.txt         : Display personal information
-        - ls -la links        : List all personal links
         - openssl sha256      : Show cryptographic hashes
         - clear               : Clear the terminal
         - exit                : Return to the welcome screen
-        - git push            : Go to Home page
+        - git                 : Git related commands (type 'git' for details)
+        - docs                : Article management commands (type 'docs' for details)`;
+
+      const docsHelpText = `        Documentation commands:
         - docs ls             : List all your articles
           - [1-5]             : View article by number
           - next              : Show next page of articles
           - prev              : Show previous page of articles`;
+          
+      const gitHelpText = `        Git commands:
+        - git init            : List all links
+          - [1-5]             : Open link by number
+          - next              : Show next page of links
+          - prev              : Show previous page of links`;
 
       // Footer links
       const footerLinks = document.getElementById('footer-links');
@@ -317,6 +325,104 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
       // Articles storage
       let articles = JSON.parse(localStorage.getItem('terminal_articles')) || [];
       let articlesPage = 0;
+      
+      // Links storage and pagination
+      let links = [];
+      let linksPage = 0;
+      
+      // Parse links from linksText
+      function parseLinks(callback) {
+        // Store the current command for context
+        window.currentCommand = 'git init';
+        
+        // Get links from the server API
+        fetch('/api/links')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            links = data.links || [];
+            
+            // If no links from API, fall back to built-in links
+            if (links.length === 0) {
+              console.log('No links from API, using built-in links');
+              // Get built-in links
+              const linkLines = linksText.split('\n').filter(line => line.includes('<a href='));
+              linkLines.forEach(line => {
+                const match = line.match(/-rw-r--r--  1 user  group   220 Jan 1 2025  <a href="(.*?)" target="_blank">(.*?)<\/a>/);
+                if (match) {
+                  links.push({
+                    url: match[1],
+                    title: match[2]
+                  });
+                }
+              });
+            }
+            
+            // Execute callback (typically displayLinks)
+            if (callback && typeof callback === 'function') {
+              callback();
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching links:', error);
+            
+            // Show error message in terminal
+            const errorElement = document.createElement('div');
+            errorElement.className = 'output';
+            errorElement.innerHTML = `Error loading links: ${error.message}<br>Falling back to built-in links...`;
+            terminalOutput.appendChild(errorElement);
+            
+            // Fall back to built-in links on error
+            links = [];
+            const linkLines = linksText.split('\n').filter(line => line.includes('<a href='));
+            linkLines.forEach(line => {
+              const match = line.match(/-rw-r--r--  1 user  group   220 Jan 1 2025  <a href="(.*?)" target="_blank">(.*?)<\/a>/);
+              if (match) {
+                links.push({
+                  url: match[1],
+                  title: match[2]
+                });
+              }
+            });
+            
+            // Even on error, call the callback with built-in links
+            if (callback && typeof callback === 'function') {
+              callback();
+            }
+          });
+        
+        return links;
+      }
+
+      // Display links for git init command
+      function displayLinks() {
+        const outputElement = document.createElement('div');
+        outputElement.className = 'output';
+        
+        const start = linksPage * 5;
+        const end = Math.min(start + 5, links.length);
+        const pageLinks = links.slice(start, end);
+        
+        let output = `Links (page ${linksPage + 1}/${Math.ceil(links.length / 5)}):\n\n`;
+        
+        pageLinks.forEach((link, index) => {
+          output += `${start + index + 1}. <a href="${link.url}" target="_blank">${link.title}</a>\n`;
+        });
+        
+        output += "\nType a number (1-5) to open a link, 'next' for more, or 'prev' for previous page.";
+        output += "\n\nTo add a new link locally use: npm run link \"https://example.com\" \"Example Website\"";
+        
+        outputElement.innerHTML = formatTerminalOutput(output);
+        terminalOutput.appendChild(outputElement);
+        
+        // Store links in a global variable for easy access
+        window.currentLinks = links;
+        window.currentCommand = 'git init';
+      }
 
       // Initialize output
       function formatTerminalOutput(text) {
@@ -580,66 +686,6 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
           
           // Show content with typewriter effect
           typeText(outputElement, bioText);
-        } else if (cmd === 'ls -la links') {
-          // Add command output
-          const outputElement = document.createElement('div');
-          outputElement.className = 'output';
-          terminalOutput.appendChild(outputElement);
-          
-          // For links, we need special handling
-          // Split link text into lines
-          const lines = linksText.split('\n');
-          let currentLine = 0;
-          
-          function typeLinkLine() {
-            if (currentLine < lines.length) {
-              const line = lines[currentLine];
-              // Create new line element
-              const lineElement = document.createElement('div');
-              outputElement.appendChild(lineElement);
-              
-              // Use typewriter effect for current line, with special handling for lines with links
-              if (line.includes('<a href=')) {
-                // Split line into parts: before link, link, and after link
-                const parts = line.split(/(<a href=.*?<\/a>)/);
-                let partIndex = 0;
-                
-                function typePartWithLink() {
-                  if (partIndex < parts.length) {
-                    const part = parts[partIndex];
-                    if (part.startsWith('<a href=')) {
-                      // This is a link, add the entire link directly
-                      lineElement.innerHTML += part;
-                    } else {
-                      // Regular text, use typewriter effect
-                      typeTextSimple(lineElement, part, () => {
-                        partIndex++;
-                        typePartWithLink();
-                      });
-                      return;
-                    }
-                    partIndex++;
-                    typePartWithLink();
-                  } else {
-                    // Current line complete, move to next line
-                    currentLine++;
-                    setTimeout(typeLinkLine, 100);
-                  }
-                }
-                
-                typePartWithLink();
-              } else {
-                // Regular line, use typewriter effect directly
-                typeTextSimple(lineElement, line, () => {
-                  currentLine++;
-                  setTimeout(typeLinkLine, 100);
-                });
-              }
-            }
-          }
-          
-          // Start displaying the first line
-          typeLinkLine();
         } else if (cmd === 'openssl sha256') {
           // Add command output
           const outputElement = document.createElement('div');
@@ -654,10 +700,39 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
           outputElement.className = 'output';
           outputElement.innerHTML = formatTerminalOutput(helpText);
           terminalOutput.appendChild(outputElement);
+        } else if (cmd === 'docs') {
+          // Show docs help commands
+          const outputElement = document.createElement('div');
+          outputElement.className = 'output';
+          outputElement.innerHTML = formatTerminalOutput(docsHelpText);
+          terminalOutput.appendChild(outputElement);
+        } else if (cmd === 'git') {
+          // Show git help commands
+          const outputElement = document.createElement('div');
+          outputElement.className = 'output';
+          outputElement.innerHTML = formatTerminalOutput(gitHelpText);
+          terminalOutput.appendChild(outputElement);
         } else if (cmd === 'exit') {
           window.location.href = 'index.html';
-        } else if (cmd === 'git push') {
-          window.location.href = 'https://jask.cc';
+        } else if (cmd === 'git init') {
+          // Clear links array and start fresh
+          links = [];
+          linksPage = 0;
+          
+          // Show loading message
+          const loadingElement = document.createElement('div');
+          loadingElement.className = 'output';
+          loadingElement.innerHTML = 'Loading links...';
+          terminalOutput.appendChild(loadingElement);
+          
+          // Parse links and display them when done
+          parseLinks(function() {
+            // Remove the loading message
+            terminalOutput.removeChild(loadingElement);
+            
+            // Display the links
+            displayLinks();
+          });
         } else if (cmd === 'docs ls') {
           // Get real articles from the server API
           const outputElement = document.createElement('div');
@@ -695,106 +770,135 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
               outputElement.innerHTML = `Error loading articles: ${error.message}\n\nMake sure the server is running.`;
             });
         } else if (cmd === 'next') {
-          if (!window.currentArticles || !window.currentArticles.length) {
-            const outputElement = document.createElement('div');
-            outputElement.className = 'output';
-            outputElement.textContent = "No articles loaded. Use 'docs ls' first.";
-            terminalOutput.appendChild(outputElement);
-            return;
-          }
-          
-          // Show next page of articles
-          const maxPages = Math.ceil(window.currentArticles.length / 5);
-          if (articlesPage < maxPages - 1) {
-            articlesPage++;
-            const outputElement = document.createElement('div');
-            outputElement.className = 'output';
-            
-            const start = articlesPage * 5;
-            const end = Math.min(start + 5, window.currentArticles.length);
-            const pageArticles = window.currentArticles.slice(start, end);
-            
-            let output = `Articles (page ${articlesPage + 1}/${Math.ceil(window.currentArticles.length / 5)}):\n\n`;
-            
-            pageArticles.forEach((article, index) => {
-              output += `${start + index + 1}. ${article.title} (${article.date})\n`;
-            });
-            
-            output += "\nType a number (1-5) to view an article, 'next' for more, or 'prev' for previous page.";
-            outputElement.innerHTML = formatTerminalOutput(output);
-            terminalOutput.appendChild(outputElement);
-          } else {
-            const outputElement = document.createElement('div');
-            outputElement.className = 'output';
-            outputElement.textContent = "No more articles to display";
-            terminalOutput.appendChild(outputElement);
+          // Check if we're in links or articles context
+          if (window.currentLinks && window.currentLinks.length) {
+            // Show next page of links
+            const maxPages = Math.ceil(window.currentLinks.length / 5);
+            if (linksPage < maxPages - 1) {
+              linksPage++;
+              displayLinks();
+            } else {
+              const outputElement = document.createElement('div');
+              outputElement.className = 'output';
+              outputElement.textContent = "No more links to display";
+              terminalOutput.appendChild(outputElement);
+            }
+          } else if (window.currentArticles && window.currentArticles.length) {
+            // Show next page of articles
+            const maxPages = Math.ceil(window.currentArticles.length / 5);
+            if (articlesPage < maxPages - 1) {
+              articlesPage++;
+              const outputElement = document.createElement('div');
+              outputElement.className = 'output';
+              
+              const start = articlesPage * 5;
+              const end = Math.min(start + 5, window.currentArticles.length);
+              const pageArticles = window.currentArticles.slice(start, end);
+              
+              let output = `Articles (page ${articlesPage + 1}/${Math.ceil(window.currentArticles.length / 5)}):\n\n`;
+              
+              pageArticles.forEach((article, index) => {
+                output += `${start + index + 1}. ${article.title} (${article.date})\n`;
+              });
+              
+              output += "\nType a number (1-5) to view an article, 'next' for more, or 'prev' for previous page.";
+              outputElement.innerHTML = formatTerminalOutput(output);
+              terminalOutput.appendChild(outputElement);
+            } else {
+              const outputElement = document.createElement('div');
+              outputElement.className = 'output';
+              outputElement.textContent = "No more articles to display";
+              terminalOutput.appendChild(outputElement);
+            }
           }
         } else if (cmd === 'prev') {
-          if (!window.currentArticles || !window.currentArticles.length) {
-            const outputElement = document.createElement('div');
-            outputElement.className = 'output';
-            outputElement.textContent = "No articles loaded. Use 'docs ls' first.";
-            terminalOutput.appendChild(outputElement);
-            return;
-          }
-          
-          // Show previous page of articles
-          if (articlesPage > 0) {
-            articlesPage--;
-            const outputElement = document.createElement('div');
-            outputElement.className = 'output';
-            
-            const start = articlesPage * 5;
-            const end = Math.min(start + 5, window.currentArticles.length);
-            const pageArticles = window.currentArticles.slice(start, end);
-            
-            let output = `Articles (page ${articlesPage + 1}/${Math.ceil(window.currentArticles.length / 5)}):\n\n`;
-            
-            pageArticles.forEach((article, index) => {
-              output += `${start + index + 1}. ${article.title} (${article.date})\n`;
-            });
-            
-            output += "\nType a number (1-5) to view an article, 'next' for more, or 'prev' for previous page.";
-            outputElement.innerHTML = formatTerminalOutput(output);
-            terminalOutput.appendChild(outputElement);
-          } else {
-            const outputElement = document.createElement('div');
-            outputElement.className = 'output';
-            outputElement.textContent = "Already at the first page";
-            terminalOutput.appendChild(outputElement);
+          // Check if we're in links or articles context
+          if (window.currentLinks && window.currentLinks.length) {
+            // Show previous page of links
+            if (linksPage > 0) {
+              linksPage--;
+              displayLinks();
+            } else {
+              const outputElement = document.createElement('div');
+              outputElement.className = 'output';
+              outputElement.textContent = "Already at the first page";
+              terminalOutput.appendChild(outputElement);
+            }
+          } else if (window.currentArticles && window.currentArticles.length) {
+            // Show previous page of articles
+            if (articlesPage > 0) {
+              articlesPage--;
+              const outputElement = document.createElement('div');
+              outputElement.className = 'output';
+              
+              const start = articlesPage * 5;
+              const end = Math.min(start + 5, window.currentArticles.length);
+              const pageArticles = window.currentArticles.slice(start, end);
+              
+              let output = `Articles (page ${articlesPage + 1}/${Math.ceil(window.currentArticles.length / 5)}):\n\n`;
+              
+              pageArticles.forEach((article, index) => {
+                output += `${start + index + 1}. ${article.title} (${article.date})\n`;
+              });
+              
+              output += "\nType a number (1-5) to view an article, 'next' for more, or 'prev' for previous page.";
+              outputElement.innerHTML = formatTerminalOutput(output);
+              terminalOutput.appendChild(outputElement);
+            } else {
+              const outputElement = document.createElement('div');
+              outputElement.className = 'output';
+              outputElement.textContent = "Already at the first page";
+              terminalOutput.appendChild(outputElement);
+            }
           }
         } else if (/^[1-5]$/.test(cmd)) {
-          if (!window.currentArticles || !window.currentArticles.length) {
-            const outputElement = document.createElement('div');
-            outputElement.className = 'output';
-            outputElement.textContent = "No articles loaded. Use 'docs ls' first.";
-            terminalOutput.appendChild(outputElement);
-            return;
-          }
-          
-          // View article by number
-          const articleIndex = parseInt(cmd) - 1 + (articlesPage * 5);
-          if (articleIndex >= 0 && articleIndex < window.currentArticles.length) {
-            const article = window.currentArticles[articleIndex];
-            
-            const outputElement = document.createElement('div');
-            outputElement.className = 'output';
-            // Convert markdown to simple HTML
-            const contentHtml = article.content
-              .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-              .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-              .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-              .replace(/\*(.*?)\*/g, '<em>$1</em>')
-              .replace(/\n/g, '<br>');
-            
-            outputElement.innerHTML = contentHtml;
-            terminalOutput.appendChild(outputElement);
-          } else {
-            const outputElement = document.createElement('div');
-            outputElement.className = 'output';
-            outputElement.textContent = `Article number ${cmd} not found on current page`;
-            terminalOutput.appendChild(outputElement);
+          // Check if we're in links or articles context
+          if (window.currentLinks && window.currentLinks.length) {
+            // Open link by number
+            const linkIndex = parseInt(cmd) - 1 + (linksPage * 5);
+            if (linkIndex >= 0 && linkIndex < window.currentLinks.length) {
+              const link = window.currentLinks[linkIndex];
+              
+              const outputElement = document.createElement('div');
+              outputElement.className = 'output';
+              outputElement.innerHTML = `Opening ${link.title} (${link.url})...`;
+              terminalOutput.appendChild(outputElement);
+              
+              // Open the link in a new tab
+              setTimeout(() => {
+                window.open(link.url, '_blank');
+              }, 500);
+            } else {
+              const outputElement = document.createElement('div');
+              outputElement.className = 'output';
+              outputElement.textContent = `Link number ${cmd} not found on current page`;
+              terminalOutput.appendChild(outputElement);
+            }
+          } else if (window.currentArticles && window.currentArticles.length) {
+            // View article by number
+            const articleIndex = parseInt(cmd) - 1 + (articlesPage * 5);
+            if (articleIndex >= 0 && articleIndex < window.currentArticles.length) {
+              const article = window.currentArticles[articleIndex];
+              
+              const outputElement = document.createElement('div');
+              outputElement.className = 'output';
+              // Convert markdown to simple HTML
+              const contentHtml = article.content
+                .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+              
+              outputElement.innerHTML = contentHtml;
+              terminalOutput.appendChild(outputElement);
+            } else {
+              const outputElement = document.createElement('div');
+              outputElement.className = 'output';
+              outputElement.textContent = `Article number ${cmd} not found on current page`;
+              terminalOutput.appendChild(outputElement);
+            }
           }
         } else {
           // Command not found

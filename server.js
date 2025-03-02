@@ -114,6 +114,46 @@ app.get('/api/articles', (req, res) => {
   }
 });
 
+// API endpoint to get links
+app.get('/api/links', (req, res) => {
+  const linksDir = path.join(__dirname, 'links');
+  
+  // Ensure the directory exists
+  if (!fs.existsSync(linksDir)) {
+    return res.json({ links: [] });
+  }
+  
+  try {
+    const files = fs.readdirSync(linksDir)
+      .filter(file => file.endsWith('.json'))
+      .sort((a, b) => b.localeCompare(a)); // Sort newer first
+    
+    const links = files.map(file => {
+      const filePath = path.join(linksDir, file);
+      const content = fs.readFileSync(filePath, 'utf-8');
+      
+      try {
+        const linkData = JSON.parse(content);
+        const stats = fs.statSync(filePath);
+        
+        return {
+          id: file,
+          title: linkData.title,
+          url: linkData.url,
+          date: linkData.createdAt ? new Date(linkData.createdAt).toISOString().split('T')[0] : stats.birthtime.toISOString().split('T')[0]
+        };
+      } catch (error) {
+        console.error(`Error parsing link file ${file}: ${error.message}`);
+        return null;
+      }
+    }).filter(link => link !== null);
+    
+    res.json({ links });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get a specific article by ID
 app.get('/api/articles/:id', (req, res) => {
   const articleId = req.params.id;

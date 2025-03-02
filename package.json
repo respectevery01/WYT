@@ -8,6 +8,8 @@
     "dev": "nodemon server.js",
     "article": "node scripts/create-article.js",
     "docs": "node scripts/list-articles.js",
+    "link": "node scripts/create-link.js",
+    "links": "node scripts/list-links.js",
     "analytics": "node scripts/add-analytics.js",
     "prebuild": "node scripts/add-analytics.js",
     "prestart": "node scripts/add-analytics.js"
