@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terminal</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: black;
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.4;
+      height: 100vh;
+      width: 100%;
+      overflow: hidden;
+    }
+    
+    #terminal-container {
+      padding: 20px;
+      text-align: left;
+    }
+    
+    #terminal-output {
+      white-space: pre-wrap;
+    }
+    
+    .prompt {
+      color: #00ff00;
+    }
+    
+    .command {
+      color: #ffffff;
+    }
+    
+    .output {
+      color: #cccccc;
+    }
+    
+    .error {
+      color: #ff0000;
+    }
+    
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 14px;
+      background-color: #00ff00;
+      animation: blink 1s infinite;
+      vertical-align: middle;
+      margin-left: 2px;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .fade-out {
+      animation: fadeOut 1s forwards;
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="terminal-container">
+    <div id="terminal-output"></div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const terminalOutput = document.getElementById('terminal-output');
+      
+      // Terminal commands and outputs based on wyt.md
+      const commands = [
+        { 
+          prompt: "user@terminal:~$ ", 
+          command: "Why are you here",
+          output: "I need to see the whole world"
+        },
+        { 
+          prompt: "user@terminal:~$ ", 
+          command: "So what should you do",
+          output: "I should, well,well,well..."
+        },
+        { 
+          prompt: "user@terminal:~$ ", 
+          command: "",
+          output: "error...\nerror...\nMake sure your network is successfully connected",
+          isError: true
+        },
+        { 
+          prompt: "user@terminal:~$ ", 
+          command: "help",
+          output: "No function named \"help\" found"
+        },
+        { 
+          prompt: "user@terminal:~$ ", 
+          command: "git clone https://wyt.icu/",
+          output: "Cloning into 'wyt'...\nremote: Enumerating objects: 42, done.\nremote: Counting objects: 100% (42/42), done.\nremote: Compressing objects: 100% (28/28), done.\nremote: Total 42 (delta 10), reused 42 (delta 10), pack-reused 0\nReceiving objects: 100% (42/42), 5.2 KiB | 1.7 MiB/s, done.\nResolving deltas: 100% (10/10), done."
+        },
+        { 
+          prompt: "user@terminal:~$ ", 
+          command: "cd wyt",
+          output: ""
+        },
+        { 
+          prompt: "user@terminal:~/wyt$ ", 
+          command: "ls",
+          output: "assets/  css/  index.html  js/  main.html  package.json  README.md  server.js"
+        },
+        { 
+          prompt: "user@terminal:~/wyt$ ", 
+          command: "npm install",
+          output: "added 127 packages, and audited 128 packages in 3s\n\n15 packages are looking for funding\n  run `npm fund` for details\n\nfound 0 vulnerabilities"
+        },
+        { 
+          prompt: "user@terminal:~/wyt$ ", 
+          command: "npm start",
+          output: "> terminal-homepage@1.0.0 start\n> node server.js\n\nServer running on http://localhost:3000\nInitializing personal website...\nLoading terminal interface...\nReady! Press any key to continue..."
+        }
+      ];
+      
+      let currentCommandIndex = 0;
+      let currentCharIndex = 0;
+      let currentPart = 'prompt'; // 'prompt', 'command', or 'output'
+      
+      // Function to type the next character
+      function typeNextChar() {
+        if (currentCommandIndex >= commands.length) {
+          // All commands completed, add cursor and wait for user input
+          terminalOutput.innerHTML += '<span class="cursor"></span>';
+          
+          // Add event listeners for user input
+          document.addEventListener('keydown', startTransition);
+          document.addEventListener('click', startTransition);
+          return;
+        }
+        
+        const currentCommand = commands[currentCommandIndex];
+        
+        if (currentPart === 'prompt') {
+          // Type the prompt
+          if (currentCharIndex < currentCommand.prompt.length) {
+            terminalOutput.innerHTML += currentCommand.prompt.charAt(currentCharIndex);
+            currentCharIndex++;
+            setTimeout(typeNextChar, 10);
+          } else {
+            currentCharIndex = 0;
+            currentPart = 'command';
+            setTimeout(typeNextChar, 100);
+          }
+        } else if (currentPart === 'command') {
+          // Type the command
+          if (currentCharIndex < currentCommand.command.length) {
+            terminalOutput.innerHTML += '<span class="command">' + currentCommand.command.charAt(currentCharIndex) + '</span>';
+            currentCharIndex++;
+            setTimeout(typeNextChar, Math.random() * 100 + 50);
+          } else {
+            terminalOutput.innerHTML += '<br>';
+            currentCharIndex = 0;
+            currentPart = 'output';
+            setTimeout(typeNextChar, 500);
+          }
+        } else if (currentPart === 'output') {
+          // Show the output
+          if (currentCommand.output) {
+            if (currentCommand.isError) {
+              terminalOutput.innerHTML += '<span class="error">' + currentCommand.output + '</span><br>';
+            } else {
+              terminalOutput.innerHTML += '<span class="output">' + currentCommand.output + '</span><br>';
+            }
+          }
+          
+          currentCharIndex = 0;
+          currentPart = 'prompt';
+          currentCommandIndex++;
+          setTimeout(typeNextChar, 800);
+        }
+      }
+      
+      // Start transition to main page with animation
+      function startTransition() {
+        document.removeEventListener('keydown', startTransition);
+        document.removeEventListener('click', startTransition);
+        
+        // Add final message
+        terminalOutput.innerHTML += '<br><span class="output">Launching terminal interface...</span>';
+        
+        // Add fade-out animation to the entire container
+        setTimeout(() => {
+          document.getElementById('terminal-container').classList.add('fade-out');
+          
+          // Redirect after animation completes
+          setTimeout(() => {
+            window.location.href = 'main.html';
+          }, 1000);
+        }, 800);
+      }
+      
+      // Start typing
+      setTimeout(typeNextChar, 500);
+    });
+  </script>
+</body>
+</html> 

@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Whisper Yonder Terminal</title>
+  <style>
+    :root {
+      --bg-color: #000000;
+      --text-color: #00ff00;
+      --prompt-color: #00ff00;
+      --command-color: #ffffff;
+      --output-color: #cccccc;
+      --link-color: #0097e6;
+      --font-mono: 'Courier New', monospace;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-mono);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      padding: 20px;
+      font-size: 14px;
+      min-height: 100vh;
+      position: relative;
+      opacity: 0;
+      animation: fadeIn 1.5s forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    #terminal {
+      max-width: 900px;
+      margin: 0 auto;
+      padding-bottom: 60px; /* Space for footer */
+    }
+
+    .prompt {
+      color: var(--prompt-color);
+      font-weight: bold;
+    }
+
+    .command {
+      color: var(--command-color);
+    }
+
+    .output {
+      color: var(--output-color);
+      margin-bottom: 15px;
+      white-space: pre-wrap;
+    }
+
+    .section {
+      margin-bottom: 20px;
+      border-bottom: 1px dashed #333;
+      padding-bottom: 20px;
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    a {
+      color: var(--link-color);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    a:hover {
+      text-decoration: underline;
+      color: #00a8ff;
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      padding: 10px 20px;
+      text-align: right;
+      border-top: 1px dashed #333;
+      width: 100%;
+      background-color: var(--bg-color);
+    }
+
+    .footer a {
+      margin: 0 10px;
+      color: #ffffff;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 14px;
+      background-color: var(--text-color);
+      animation: blink 1s infinite;
+      vertical-align: middle;
+      margin-left: 0;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .column {
+      margin-bottom: 20px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    td {
+      padding: 5px 10px;
+    }
+
+    .hash-table {
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    .typing {
+      display: inline-block;
+      overflow: hidden;
+      white-space: nowrap;
+      margin: 0;
+      animation: typing 3.5s steps(40, end);
+    }
+
+    @keyframes typing {
+      from { width: 0 }
+      to { width: 100% }
+    }
+
+    #command-line {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+      position: sticky;
+      bottom: 60px;
+      background-color: var(--bg-color);
+      padding: 10px 0;
+      border-top: 1px dashed #333;
+    }
+
+    #current-command {
+      min-width: 1px;
+      min-height: 14px;
+    }
+
+    #terminal-output {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+    }
+
+    .welcome-section {
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed #333;
+    }
+  </style>
+</head>
+<body>
+  <div id="terminal">
+    <!-- Dynamic output area where all command results will be displayed -->
+    <div id="terminal-output">
+      <!-- Initial welcome message and help prompt -->
+      <div class="welcome-section">
+        <div class="output">Welcome to Whisper Yonder Terminal v1.0</div>
+        <div class="prompt">user@terminal:~$ </div>
+        <span class="command">help</span>
+      </div>
+    </div>
+
+    <!-- Command Input (fixed at bottom) -->
+    <div id="command-line">
+      <span class="prompt">user@terminal:~$ </span>
+      <span id="current-command"></span><span class="cursor"></span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="output" id="footer-links" style="display: inline-block;">
+      <!-- Will be filled by JavaScript -->
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Content definitions
+      const bioText = `Name: Whisper Yonder Terminal
+Occupation: I travel through time and space, and the mysterious creator created me
+About: I am who I am, I believe in everything that exists on earth, and I can find the meaning of my existence, just as paramecia can also create value`;
+
+      const linksText = `total 15
+drwxr-xr-x  2 user  group  4096 Jan 1 2025 .
+drwxr-xr-x 10 user  group  4096 Jan 1 2025 ..
+-rw-r--r--  1 user  group   220 Jan 1 2025  <a href="https://github.com/respectevery01" target="_blank">GitHub</a>
+-rw-r--r--  1 user  group   220 Jan 1 2025  <a href="https://twitter.com/jask_don" target="_blank">Twitter</a>
+-rw-r--r--  1 user  group   220 Jan 1 2025  <a href="https://jask.cc" target="_blank">website</a>`;
+
+      const hashText = `Input string: "Hello, World!"
+MD5: 65a8e27d8879283831b664bd8b7f0ad4
+SHA1: 0a0a9f2a6772942557ab5355d76af442f8f65e01
+SHA256: dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f
+
+Input string: "Whisper Yonder Terminal"
+MD5: 945cd2150484d44592641135381cdc61
+SHA1: 5b13516d56b7512cfcc7cfa255730367a1045c61
+SHA256: 6c439c68d6513da0773ed5a2dab360b399939a2d255b63b28dbe8db92312a29a
+
+Input string: "Wallet"
+EVM: 0x60602C9181e9389Ff6D608D94F0346E3C9381881
+SVM: 7QmJRXSJ96HSD87LXrX9y5KM8oG67cCDPxBnpcPKtakE
+Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
+
+      const helpText = `        Available commands:
+        - cat bio.txt         : Display personal information
+        - ls -la links       : List all personal links
+        - openssl sha256      : Show cryptographic hashes
+        - clear               : Clear the terminal
+        - exit                : Return to the welcome screen
+        - git push            : Go to Home page
+        - npm article [title] : Create a new markdown article
+        - docs ls             : List all your articles
+        - [1-5]               : View article by number
+        - next                : Show next page of articles
+        - prev                : Show previous page of articles`;
+
+      // Footer links
+      const footerLinks = document.getElementById('footer-links');
+      const footerLinksHTML = `<a href="https://github.com/respectevery01" target="_blank">GitHub</a> | <a href="https://twitter.com/jask_don" target="_blank">Twitter</a> | <a href="https://jask.cc" target="_blank">Website</a>`;
+
+      // Get DOM elements
+      const terminalOutput = document.getElementById('terminal-output');
+      const commandLine = document.getElementById('current-command');
+      let currentCommand = '';
+      
+      // Add command history functionality
+      let commandHistory = [];
+      let historyIndex = -1;
+      
+      // Articles storage
+      let articles = JSON.parse(localStorage.getItem('terminal_articles')) || [];
+      let articlesPage = 0;
+
+      // Initialize output
+      function formatTerminalOutput(text) {
+        return text.replace(/\n/g, '<br>');
+      }
+
+      // Populate initial footer links
+      footerLinks.innerHTML = footerLinksHTML;
+
+      // Display help content when page loads
+      window.addEventListener('load', () => {
+        // Add help content as output of first command
+        const outputElement = document.createElement('div');
+        outputElement.className = 'output';
+        outputElement.innerHTML = formatTerminalOutput(helpText);
+        terminalOutput.appendChild(outputElement);
+        
+        // Add visual cue to let user know they can start typing
+        const cursor = document.querySelector('.cursor');
+        if (cursor) {
+          cursor.style.opacity = 1;
+        }
+        console.log('Page loaded, terminal ready for input');
+        
+        // Ensure scroll to bottom
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+
+      // Add keyboard event listener
+      document.addEventListener('keydown', function(e) {
+        // Prevent default behavior for specific keys
+        if (e.key === ' ' || e.key === 'Tab' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault();
+        }
+        
+        // Handle keyboard input
+        if (e.key === 'Enter') {
+          // Process command
+          const cmd = currentCommand.trim();
+          if (cmd) {
+            // Add command to output area
+            const commandElement = document.createElement('div');
+            commandElement.innerHTML = `<span class="prompt">user@terminal:~$ </span><span class="command">${cmd.replace(/ /g, '&nbsp;')}</span>`;
+            terminalOutput.appendChild(commandElement);
+            
+            // Add command to history
+            commandHistory.push(cmd);
+            historyIndex = -1;
+            
+            // Process the command
+            processCommand(cmd);
+          }
+          currentCommand = '';
+          commandLine.innerHTML = '';
+          
+          // Scroll to bottom
+          window.scrollTo(0, document.body.scrollHeight);
+        } else if (e.key === 'ArrowUp') {
+          // Browse command history upward
+          if (commandHistory.length > 0) {
+            if (historyIndex < commandHistory.length - 1) {
+              historyIndex++;
+            }
+            currentCommand = commandHistory[commandHistory.length - 1 - historyIndex];
+            commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+          }
+        } else if (e.key === 'ArrowDown') {
+          // Browse command history downward
+          if (historyIndex > 0) {
+            historyIndex--;
+            currentCommand = commandHistory[commandHistory.length - 1 - historyIndex];
+            commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+          } else if (historyIndex === 0) {
+            // Return to empty command
+            historyIndex = -1;
+            currentCommand = '';
+            commandLine.innerHTML = '';
+          }
+        } else if (e.key === 'Backspace') {
+          e.preventDefault();
+          currentCommand = currentCommand.slice(0, -1);
+          commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+        } else if (e.key === ' ') {
+          e.preventDefault();
+          currentCommand += ' ';
+          commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+          console.log('Space key pressed, current command:', currentCommand);
+        } else if (e.key.length === 1) {
+          currentCommand += e.key;
+          commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+        }
+      });
+
+      // Add right-click context menu for paste functionality
+      document.getElementById('terminal').addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        
+        // Check if clipboard API is supported
+        if (navigator.clipboard) {
+          navigator.clipboard.readText()
+            .then(text => {
+              // Append the pasted text to the current command
+              currentCommand += text;
+              commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+            })
+            .catch(err => {
+              console.error('Failed to read clipboard contents: ', err);
+            });
+        } else {
+          const outputElement = document.createElement('div');
+          outputElement.className = 'output';
+          outputElement.textContent = 'Clipboard access is not supported in your browser or requires HTTPS.';
+          terminalOutput.appendChild(outputElement);
+        }
+      });
+
+      // Handle keyboard shortcut for paste (Ctrl+V)
+      document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+          e.preventDefault();
+          
+          if (navigator.clipboard) {
+            navigator.clipboard.readText()
+              .then(text => {
+                // Append the pasted text to the current command
+                currentCommand += text;
+                commandLine.innerHTML = currentCommand.replace(/ /g, '&nbsp;');
+              })
+              .catch(err => {
+                console.error('Failed to read clipboard contents: ', err);
+              });
+          }
+        }
+      });
+
+      function processCommand(cmd) {
+        cmd = cmd.trim().toLowerCase();
+        
+        if (cmd === 'clear') {
+          // Clear terminal content, keep only command line
+          terminalOutput.innerHTML = '';
+        } else if (cmd === 'cat bio.txt') {
+          // Add command output
+          const outputElement = document.createElement('div');
+          outputElement.className = 'output';
+          terminalOutput.appendChild(outputElement);
+          
+          // Show content with typewriter effect
+          typeText(outputElement, bioText);
+        } else if (cmd === 'ls -la links') {
+          // Add command output
+          const outputElement = document.createElement('div');
+          outputElement.className = 'output';
+          terminalOutput.appendChild(outputElement);
+          
+          // For links, we need special handling
+          // Split link text into lines
+          const lines = linksText.split('\n');
+          let currentLine = 0;
+          
+          function typeLinkLine() {
+            if (currentLine < lines.length) {
+              const line = lines[currentLine];
+              // Create new line element
+              const lineElement = document.createElement('div');
+              outputElement.appendChild(lineElement);
+              
+              // Use typewriter effect for current line, with special handling for lines with links
+              if (line.includes('<a href=')) {
+                // Split line into parts: before link, link, and after link
+                const parts = line.split(/(<a href=.*?<\/a>)/);
+                let partIndex = 0;
+                
+                function typePartWithLink() {
+                  if (partIndex < parts.length) {
+                    const part = parts[partIndex];
+                    if (part.startsWith('<a href=')) {
+                      // This is a link, add the entire link directly
+                      lineElement.innerHTML += part;
+                    } else {
+                      // Regular text, use typewriter effect
+                      typeTextSimple(lineElement, part, () => {
+                        partIndex++;
+                        typePartWithLink();
+                      });
+                      return;
+                    }
+                    partIndex++;
+                    typePartWithLink();
+                  } else {
+                    // Current line complete, move to next line
+                    currentLine++;
+                    setTimeout(typeLinkLine, 100);
+                  }
+                }
+                
+                typePartWithLink();
+              } else {
+                // Regular line, use typewriter effect directly
+                typeTextSimple(lineElement, line, () => {
+                  currentLine++;
+                  setTimeout(typeLinkLine, 100);
+                });
+              }
+            }
+          }
+          
+          // Start displaying the first line
+          typeLinkLine();
+        } else if (cmd === 'openssl sha256') {
+          // Add command output
+          const outputElement = document.createElement('div');
+          outputElement.className = 'output';
+          terminalOutput.appendChild(outputElement);
+          
+          // Show content with typewriter effect
+          typeText(outputElement, hashText);
+        } else if (cmd === 'help') {
+          // Add command output
+          const outputElement = document.createElement('div');
+          outputElement.className = 'output';
+          outputElement.innerHTML = formatTerminalOutput(helpText);
+          terminalOutput.appendChild(outputElement);
+        } else if (cmd === 'exit') {
+          window.location.href = 'index.html';
+        } else if (cmd === 'git push') {
+          window.location.href = 'https://jask.cc';
+        } else if (cmd.startsWith('npm article')) {
+          const outputElement = document.createElement('div');
+          outputElement.className = 'output';
+          outputElement.innerHTML = `To create articles, run this command in your actual terminal:\n\nnpm run article "Your Article Title"\n\nThis will create a real markdown file on your system.`;
+          terminalOutput.appendChild(outputElement);
+        } else if (cmd === 'docs ls') {
+          // Get real articles from the server API
+          const outputElement = document.createElement('div');
+          outputElement.className = 'output';
+          outputElement.innerHTML = 'Loading articles...';
+          terminalOutput.appendChild(outputElement);
+          
+          fetch('/api/articles')
+            .then(response => response.json())
+            .then(data => {
+              const articles = data.articles || [];
+              articlesPage = 0;
+              
+              if (articles.length === 0) {
+                outputElement.innerHTML = 'No articles found. Create one with:\n\nnpm run article "Your Article Title"';
+              } else {
+                const start = articlesPage * 5;
+                const end = Math.min(start + 5, articles.length);
+                const pageArticles = articles.slice(start, end);
+                
+                let output = `Articles (page ${articlesPage + 1}/${Math.ceil(articles.length / 5)}):\n\n`;
+                
+                pageArticles.forEach((article, index) => {
+                  output += `${start + index + 1}. ${article.title} (${article.date})\n`;
+                });
+                
+                output += "\nType a number (1-5) to view an article, 'next' for more, or 'prev' for previous page.";
+                outputElement.innerHTML = formatTerminalOutput(output);
+                
+                // Store the articles in a global variable for later access
+                window.currentArticles = articles;
+              }
+            })
+            .catch(error => {
+              outputElement.innerHTML = `Error loading articles: ${error.message}\n\nMake sure the server is running.`;
+            });
+        } else if (cmd === 'next') {
+          if (!window.currentArticles || !window.currentArticles.length) {
+            const outputElement = document.createElement('div');
+            outputElement.className = 'output';
+            outputElement.textContent = "No articles loaded. Use 'docs ls' first.";
+            terminalOutput.appendChild(outputElement);
+            return;
+          }
+          
+          // Show next page of articles
+          const maxPages = Math.ceil(window.currentArticles.length / 5);
+          if (articlesPage < maxPages - 1) {
+            articlesPage++;
+            const outputElement = document.createElement('div');
+            outputElement.className = 'output';
+            
+            const start = articlesPage * 5;
+            const end = Math.min(start + 5, window.currentArticles.length);
+            const pageArticles = window.currentArticles.slice(start, end);
+            
+            let output = `Articles (page ${articlesPage + 1}/${Math.ceil(window.currentArticles.length / 5)}):\n\n`;
+            
+            pageArticles.forEach((article, index) => {
+              output += `${start + index + 1}. ${article.title} (${article.date})\n`;
+            });
+            
+            output += "\nType a number (1-5) to view an article, 'next' for more, or 'prev' for previous page.";
+            outputElement.innerHTML = formatTerminalOutput(output);
+            terminalOutput.appendChild(outputElement);
+          } else {
+            const outputElement = document.createElement('div');
+            outputElement.className = 'output';
+            outputElement.textContent = "No more articles to display";
+            terminalOutput.appendChild(outputElement);
+          }
+        } else if (cmd === 'prev') {
+          if (!window.currentArticles || !window.currentArticles.length) {
+            const outputElement = document.createElement('div');
+            outputElement.className = 'output';
+            outputElement.textContent = "No articles loaded. Use 'docs ls' first.";
+            terminalOutput.appendChild(outputElement);
+            return;
+          }
+          
+          // Show previous page of articles
+          if (articlesPage > 0) {
+            articlesPage--;
+            const outputElement = document.createElement('div');
+            outputElement.className = 'output';
+            
+            const start = articlesPage * 5;
+            const end = Math.min(start + 5, window.currentArticles.length);
+            const pageArticles = window.currentArticles.slice(start, end);
+            
+            let output = `Articles (page ${articlesPage + 1}/${Math.ceil(window.currentArticles.length / 5)}):\n\n`;
+            
+            pageArticles.forEach((article, index) => {
+              output += `${start + index + 1}. ${article.title} (${article.date})\n`;
+            });
+            
+            output += "\nType a number (1-5) to view an article, 'next' for more, or 'prev' for previous page.";
+            outputElement.innerHTML = formatTerminalOutput(output);
+            terminalOutput.appendChild(outputElement);
+          } else {
+            const outputElement = document.createElement('div');
+            outputElement.className = 'output';
+            outputElement.textContent = "Already at the first page";
+            terminalOutput.appendChild(outputElement);
+          }
+        } else if (/^[1-5]$/.test(cmd)) {
+          if (!window.currentArticles || !window.currentArticles.length) {
+            const outputElement = document.createElement('div');
+            outputElement.className = 'output';
+            outputElement.textContent = "No articles loaded. Use 'docs ls' first.";
+            terminalOutput.appendChild(outputElement);
+            return;
+          }
+          
+          // View article by number
+          const articleIndex = parseInt(cmd) - 1 + (articlesPage * 5);
+          if (articleIndex >= 0 && articleIndex < window.currentArticles.length) {
+            const article = window.currentArticles[articleIndex];
+            
+            const outputElement = document.createElement('div');
+            outputElement.className = 'output';
+            // Convert markdown to simple HTML
+            const contentHtml = article.content
+              .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+              .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+              .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+              .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+              .replace(/\*(.*?)\*/g, '<em>$1</em>')
+              .replace(/\n/g, '<br>');
+            
+            outputElement.innerHTML = contentHtml;
+            terminalOutput.appendChild(outputElement);
+          } else {
+            const outputElement = document.createElement('div');
+            outputElement.className = 'output';
+            outputElement.textContent = `Article number ${cmd} not found on current page`;
+            terminalOutput.appendChild(outputElement);
+          }
+        } else {
+          // Command not found
+          const outputElement = document.createElement('div');
+          outputElement.className = 'output';
+          outputElement.textContent = `Command not found: ${cmd}. Type 'help' for available commands.`;
+          terminalOutput.appendChild(outputElement);
+        }
+        
+        // Scroll to bottom after each command processing
+        setTimeout(() => {
+          window.scrollTo(0, document.body.scrollHeight);
+        }, 100);
+      }
+
+      // Simplified typewriter effect function, supports callback
+      function typeTextSimple(element, text, callback) {
+        let i = 0;
+        const speed = 10; // Typing speed in milliseconds
+        
+        function type() {
+          if (i < text.length) {
+            const char = text.charAt(i);
+            if (char === '\n') {
+              element.innerHTML += '<br>';
+            } else {
+              element.innerHTML += char;
+            }
+            i++;
+            setTimeout(type, speed);
+            
+            // Scroll to bottom after each character
+            window.scrollTo(0, document.body.scrollHeight);
+          } else if (callback) {
+            callback();
+          }
+        }
+        
+        type();
+      }
+      
+      // Original typewriter effect function
+      function typeText(element, text, isHTML = false) {
+        let i = 0;
+        const speed = 10; // Typing speed in milliseconds
+        
+        function type() {
+          if (i < text.length) {
+            if (isHTML) {
+              element.innerHTML += text.charAt(i);
+            } else {
+              const char = text.charAt(i);
+              if (char === '\n') {
+                element.innerHTML += '<br>';
+              } else {
+                element.innerHTML += char;
+              }
+            }
+            i++;
+            setTimeout(type, speed);
+            
+            // Scroll to bottom after each character
+            window.scrollTo(0, document.body.scrollHeight);
+          }
+        }
+        
+        type();
+      }
+    });
+  </script>
+</body>
+</html> 
