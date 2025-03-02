@@ -158,6 +158,7 @@
     #current-command {
       min-width: 1px;
       min-height: 14px;
+      color: var(--command-color);
     }
     
     /* Add a hidden input for mobile keyboard activation */
@@ -214,6 +215,16 @@
       display: none;
     }
   </style>
+  
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-F63N2FG7KY"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-F63N2FG7KY');
+  </script>
 </head>
 <body>
   <div id="terminal">
@@ -230,7 +241,7 @@
     <!-- Command Input (fixed at bottom) -->
     <div id="command-line">
       <span class="prompt">user@terminal:~$ </span>
-      <span id="current-command"></span><span class="cursor"></span>
+      <span id="current-command" class="command"></span><span class="cursor"></span>
     </div>
     
     <!-- Mobile keyboard prompt -->
@@ -278,16 +289,15 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
 
       const helpText = `        Available commands:
         - cat bio.txt         : Display personal information
-        - ls -la links       : List all personal links
+        - ls -la links        : List all personal links
         - openssl sha256      : Show cryptographic hashes
         - clear               : Clear the terminal
         - exit                : Return to the welcome screen
         - git push            : Go to Home page
-        - npm article [title] : Create a new markdown article
         - docs ls             : List all your articles
-        - [1-5]               : View article by number
-        - next                : Show next page of articles
-        - prev                : Show previous page of articles`;
+          - [1-5]             : View article by number
+          - next              : Show next page of articles
+          - prev              : Show previous page of articles`;
 
       // Footer links
       const footerLinks = document.getElementById('footer-links');
@@ -554,8 +564,11 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
       });
 
       function processCommand(cmd) {
+        // Trim command and convert to lowercase, but keep original for display
+        const originalCmd = cmd;
         cmd = cmd.trim().toLowerCase();
         
+        // Strict command matching - exact matches only
         if (cmd === 'clear') {
           // Clear terminal content, keep only command line
           terminalOutput.innerHTML = '';
@@ -645,11 +658,6 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
           window.location.href = 'index.html';
         } else if (cmd === 'git push') {
           window.location.href = 'https://jask.cc';
-        } else if (cmd.startsWith('npm article')) {
-          const outputElement = document.createElement('div');
-          outputElement.className = 'output';
-          outputElement.innerHTML = `To create articles, run this command in your actual terminal:\n\nnpm run article "Your Article Title"\n\nThis will create a real markdown file on your system.`;
-          terminalOutput.appendChild(outputElement);
         } else if (cmd === 'docs ls') {
           // Get real articles from the server API
           const outputElement = document.createElement('div');
@@ -792,7 +800,7 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
           // Command not found
           const outputElement = document.createElement('div');
           outputElement.className = 'output';
-          outputElement.textContent = `Command not found: ${cmd}. Type 'help' for available commands.`;
+          outputElement.textContent = `Command not found: ${originalCmd}. Type 'help' for available commands.`;
           terminalOutput.appendChild(outputElement);
         }
         

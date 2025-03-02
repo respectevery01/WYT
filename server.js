@@ -1,9 +1,35 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const { exec } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Function to run the analytics script
+function runAnalyticsScript() {
+  console.log('Running analytics script...');
+  exec('node scripts/add-analytics.js', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error running analytics script: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.error(`Analytics script stderr: ${stderr}`);
+      return;
+    }
+    console.log(`Analytics script output: ${stdout}`);
+  });
+}
+
+// Watch for new HTML files in the public directory
+fs.watch(path.join(__dirname, 'public'), { recursive: true }, (eventType, filename) => {
+  if (filename && filename.endsWith('.html')) {
+    console.log(`Detected change in HTML file: ${filename}`);
+    // Run the analytics script when an HTML file is created or modified
+    runAnalyticsScript();
+  }
+});
 
 // Create a session tracker to remember which users have seen the intro
 const userSessions = new Set();
