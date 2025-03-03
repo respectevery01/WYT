@@ -265,13 +265,6 @@
 Occupation: I travel through time and space, and the mysterious creator created me
 About: I am who I am, I believe in everything that exists on earth, and I can find the meaning of my existence, just as paramecia can also create value`;
 
-      const linksText = `total 15
-drwxr-xr-x  2 user  group  4096 Jan 1 2025 .
-drwxr-xr-x 10 user  group  4096 Jan 1 2025 ..
--rw-r--r--  1 user  group   220 Jan 1 2025  <a href="https://github.com/respectevery01/WYT" target="_blank">GitHub</a>
--rw-r--r--  1 user  group   220 Jan 1 2025  <a href="https://twitter.com/jask_don" target="_blank">Twitter</a>
--rw-r--r--  1 user  group   220 Jan 1 2025  <a href="https://jask.cc" target="_blank">website</a>`;
-
       const hashText = `Input string: "Hello, World!"
 MD5: 65a8e27d8879283831b664bd8b7f0ad4
 SHA1: 0a0a9f2a6772942557ab5355d76af442f8f65e01
@@ -343,22 +336,6 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
           .then(data => {
             links = data.links || [];
             
-            // If no links from API, fall back to built-in links
-            if (links.length === 0) {
-              console.log('No links from API, using built-in links');
-              // Get built-in links
-              const linkLines = linksText.split('\n').filter(line => line.includes('<a href='));
-              linkLines.forEach(line => {
-                const match = line.match(/-rw-r--r--  1 user  group   220 Jan 1 2025  <a href="(.*?)" target="_blank">(.*?)<\/a>/);
-                if (match) {
-                  links.push({
-                    url: match[1],
-                    title: match[2]
-                  });
-                }
-              });
-            }
-            
             // Execute callback (typically displayLinks)
             if (callback && typeof callback === 'function') {
               callback();
@@ -370,23 +347,13 @@ Secret Key: 3234fafe7602ca59f47867964aba75f7b49dea03c9d0bdd65d442b3f1e1afe7e`;
             // Show error message in terminal
             const errorElement = document.createElement('div');
             errorElement.className = 'output';
-            errorElement.innerHTML = `Error loading links: ${error.message}<br>Falling back to built-in links...`;
+            errorElement.innerHTML = `Error loading links: ${error.message}<br>No links available. Add links using: npm run link "https://example.com" "Example Website"`;
             terminalOutput.appendChild(errorElement);
             
-            // Fall back to built-in links on error
+            // Initialize empty links array
             links = [];
-            const linkLines = linksText.split('\n').filter(line => line.includes('<a href='));
-            linkLines.forEach(line => {
-              const match = line.match(/-rw-r--r--  1 user  group   220 Jan 1 2025  <a href="(.*?)" target="_blank">(.*?)<\/a>/);
-              if (match) {
-                links.push({
-                  url: match[1],
-                  title: match[2]
-                });
-              }
-            });
             
-            // Even on error, call the callback with built-in links
+            // Even on error, call the callback
             if (callback && typeof callback === 'function') {
               callback();
             }
